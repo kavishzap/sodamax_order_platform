@@ -5,7 +5,16 @@ const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '230XXXXXXXX'
 /**
  * Build the order summary message for WhatsApp.
  */
-export function buildOrderMessage({ customer, items, giftCardCode, subtotal, discount, total }) {
+export function buildOrderMessage({
+  customer,
+  items,
+  giftCardCode,
+  refillGiftCardCode,
+  subtotal,
+  discount,
+  deliveryFee,
+  total,
+}) {
   const lines = [
     `Customer: ${customer.fullName}`,
     `Phone: ${customer.phone}`,
@@ -20,15 +29,33 @@ export function buildOrderMessage({ customer, items, giftCardCode, subtotal, dis
 
   items.forEach((item) => {
     const lineTotal = item.price * item.quantity
-    lines.push(`${item.quantity} x ${item.name} - ${formatPrice(lineTotal)}`)
+    const colorSuffix = item.color ? ` (${item.color})` : ''
+    const label = item.isGiftRefill
+      ? `${item.quantity} x ${item.name} - Free (gift card)`
+      : `${item.quantity} x ${item.name}${colorSuffix} - ${formatPrice(lineTotal)}`
+    lines.push(label)
   })
 
   lines.push('')
 
+  if (refillGiftCardCode) {
+    lines.push(`Refill Gift Card: ${refillGiftCardCode}`)
+  }
+
   if (giftCardCode) {
-    lines.push(`Gift Card: ${giftCardCode}`)
+    lines.push(`Discount Gift Card: ${giftCardCode}`)
+  }
+
+  if (giftCardCode || deliveryFee > 0) {
     lines.push(`Subtotal: ${formatPrice(subtotal)}`)
+  }
+
+  if (discount > 0) {
     lines.push(`Discount: -${formatPrice(discount)}`)
+  }
+
+  if (deliveryFee > 0) {
+    lines.push(`Delivery fee: ${formatPrice(deliveryFee)}`)
   }
 
   lines.push(`Total: ${formatPrice(total)}`)

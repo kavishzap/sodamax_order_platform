@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import Header from '../components/Header'
 import ProductCard from '../components/ProductCard'
+import GiftCardRefillBanner from '../components/GiftCardRefillBanner'
+import { getGiftRefillProduct } from '../config/products'
 import { fetchProducts } from '../services/supabase'
 
 export default function Store() {
@@ -37,6 +39,11 @@ export default function Store() {
     return products.filter((p) => p.name.toLowerCase().includes(query))
   }, [products, searchQuery])
 
+  const giftRefillProduct = useMemo(
+    () => getGiftRefillProduct(products),
+    [products],
+  )
+
   return (
     <div className="page">
       <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
@@ -44,10 +51,11 @@ export default function Store() {
       <main className="store">
         <section className="store__hero">
           <h1 className="store__title">Order Your Favourites</h1>
-          <p className="store__subtitle">
-            Premium beverages delivered to your door. Browse, add to cart, and order via WhatsApp.
-          </p>
         </section>
+
+        {!loading && !error && giftRefillProduct && (
+          <GiftCardRefillBanner refillProduct={giftRefillProduct} />
+        )}
 
         {loading && (
           <div className="store__loading">
@@ -74,7 +82,7 @@ export default function Store() {
             <p>
               {searchQuery
                 ? `No products found for "${searchQuery}"`
-                : 'No products available at the moment.'}
+                : 'No products available. If you have products in Supabase, run supabase/enable_public_read.sql in the SQL Editor to allow public read access.'}
             </p>
           </div>
         )}

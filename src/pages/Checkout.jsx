@@ -10,9 +10,11 @@ export default function Checkout() {
   const {
     items,
     subtotal,
+    deliveryFee,
     discountAmount,
     total,
     giftCardCode,
+    refillGiftCardCode,
     giftCardMessage,
     applyGiftCard,
     removeGiftCard,
@@ -63,8 +65,10 @@ export default function Checkout() {
       customer: form,
       items,
       giftCardCode,
+      refillGiftCardCode,
       subtotal,
       discount: discountAmount,
+      deliveryFee,
       total,
     })
 
@@ -195,9 +199,16 @@ export default function Checkout() {
                       <span className="summary-item__qty">{item.quantity}</span>
                     </div>
                     <div className="summary-item__info">
-                      <span className="summary-item__name">{item.name}</span>
+                      <span className="summary-item__name">
+                        {item.name}
+                        {item.color && (
+                          <span className="summary-item__color"> ({item.color})</span>
+                        )}
+                      </span>
                       <span className="summary-item__price">
-                        {formatPrice(item.price * item.quantity)}
+                        {item.isGiftRefill
+                          ? 'Free'
+                          : formatPrice(item.price * item.quantity)}
                       </span>
                     </div>
                   </li>
@@ -235,11 +246,23 @@ export default function Checkout() {
               </div>
             )}
 
+            {refillGiftCardCode && (
+              <div className="gift-card-applied">
+                <span>Refill card: <strong>{refillGiftCardCode}</strong></span>
+              </div>
+            )}
+
             <div className="cart-totals">
               <div className="cart-totals__row">
                 <span>Subtotal</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
+              {deliveryFee > 0 && (
+                <div className="cart-totals__row">
+                  <span>Delivery fee</span>
+                  <span>{formatPrice(deliveryFee)}</span>
+                </div>
+              )}
               {discountAmount > 0 && (
                 <div className="cart-totals__row cart-totals__row--discount">
                   <span>Gift card discount</span>

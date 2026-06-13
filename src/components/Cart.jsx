@@ -8,9 +8,11 @@ export default function Cart() {
   const {
     items,
     subtotal,
+    deliveryFee,
     discountAmount,
     total,
     giftCardCode,
+    refillGiftCardCode,
     giftCardMessage,
     isCartOpen,
     closeCart,
@@ -99,11 +101,23 @@ export default function Cart() {
                 </div>
               )}
 
+              {refillGiftCardCode && (
+                <div className="gift-card-applied">
+                  <span>Refill card: <strong>{refillGiftCardCode}</strong></span>
+                </div>
+              )}
+
               <div className="cart-totals">
                 <div className="cart-totals__row">
                   <span>Subtotal</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
+                {deliveryFee > 0 && (
+                  <div className="cart-totals__row">
+                    <span>Delivery fee</span>
+                    <span>{formatPrice(deliveryFee)}</span>
+                  </div>
+                )}
                 {discountAmount > 0 && (
                   <div className="cart-totals__row cart-totals__row--discount">
                     <span>Gift card discount</span>

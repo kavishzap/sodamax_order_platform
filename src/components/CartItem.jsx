@@ -5,9 +5,10 @@ export default function CartItem({ item }) {
   const { updateQuantity, removeFromCart } = useCart()
   const imageSrc = toImageSrc(item.image_base64)
   const lineTotal = item.price * item.quantity
+  const isGiftRefill = item.isGiftRefill
 
   return (
-    <div className="cart-item">
+    <div className={`cart-item${isGiftRefill ? ' cart-item--gift' : ''}`}>
       <div className="cart-item__image-wrap">
         {imageSrc ? (
           <img src={imageSrc} alt={item.name} className="cart-item__image" />
@@ -18,7 +19,12 @@ export default function CartItem({ item }) {
 
       <div className="cart-item__details">
         <div className="cart-item__top">
-          <h4 className="cart-item__name">{item.name}</h4>
+          <h4 className="cart-item__name">
+            {item.name}
+            {item.color && (
+              <span className="cart-item__color"> — {item.color}</span>
+            )}
+          </h4>
           <button
             type="button"
             className="cart-item__remove"
@@ -31,30 +37,38 @@ export default function CartItem({ item }) {
           </button>
         </div>
 
-        <p className="cart-item__unit-price">{formatPrice(item.price)} each</p>
+        <p className="cart-item__unit-price">
+          {isGiftRefill ? 'Free (gift card)' : `${formatPrice(item.price)} each`}
+        </p>
 
         <div className="cart-item__footer">
-          <div className="quantity-control">
-            <button
-              type="button"
-              className="quantity-control__btn"
-              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-              disabled={item.quantity <= 1}
-              aria-label="Decrease quantity"
-            >
-              −
-            </button>
-            <span className="quantity-control__value">{item.quantity}</span>
-            <button
-              type="button"
-              className="quantity-control__btn"
-              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-              aria-label="Increase quantity"
-            >
-              +
-            </button>
-          </div>
-          <span className="cart-item__line-total">{formatPrice(lineTotal)}</span>
+          {isGiftRefill ? (
+            <span className="cart-item__gift-tag">One-time redemption</span>
+          ) : (
+            <div className="quantity-control">
+              <button
+                type="button"
+                className="quantity-control__btn"
+                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                disabled={item.quantity <= 1}
+                aria-label="Decrease quantity"
+              >
+                −
+              </button>
+              <span className="quantity-control__value">{item.quantity}</span>
+              <button
+                type="button"
+                className="quantity-control__btn"
+                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                aria-label="Increase quantity"
+              >
+                +
+              </button>
+            </div>
+          )}
+          <span className="cart-item__line-total">
+            {isGiftRefill ? 'Free' : formatPrice(lineTotal)}
+          </span>
         </div>
       </div>
     </div>

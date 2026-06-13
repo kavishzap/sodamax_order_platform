@@ -1,5 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { validateGiftCard } from '../config/giftCards'
+import { validatePercentGiftCard, validateRefillGiftCard } from '../config/giftCards'
+import {
+  GIFT_REFILL_DELIVERY_FEE,
+  buildCartLineId,
+  giftRefillLineId,
+  isGiftRefillLineId,
+  isRefillProduct,
+} from '../config/products'
+import { productHasColors } from '../utils/colors'
 
 const STORAGE_KEY = 'sodamax-cart'
 
@@ -8,15 +16,28 @@ const CartContext = createContext(null)
 function loadCart() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return { items: [], giftCardCode: '', giftCardDiscount: 0 }
+    if (!raw) {
+      return {
+        items: [],
+        giftCardCode: '',
+        giftCardDiscount: 0,
+        refillGiftCardCode: '',
+      }
+    }
     const parsed = JSON.parse(raw)
     return {
       items: Array.isArray(parsed.items) ? parsed.items : [],
       giftCardCode: parsed.giftCardCode ?? '',
       giftCardDiscount: parsed.giftCardDiscount ?? 0,
+      refillGiftCardCode: parsed.refillGiftCardCode ?? '',
     }
   } catch {
-    return { items: [], giftCardCode: '', giftCardDiscount: 0 }
+    return {
+      items: [],
+      giftCardCode: '',
+      giftCardDiscount: 0,
+      refillGiftCardCode: '',
+    }
   }
 }
 
@@ -26,50 +47,153 @@ export function CartProvider({ children }) {
   const [giftCardDiscount, setGiftCardDiscount] = useState(
     () => loadCart().giftCardDiscount,
   )
+  const [refillGiftCardCode, setRefillGiftCardCode] = useState(
+    () => loadCart().refillGiftCardCode,
+  )
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [giftCardMessage, setGiftCardMessage] = useState(null)
+  const [refillBannerMessage, setRefillBannerMessage] = useState(null)
 
-  // Persist cart to localStorage whenever it changes
+  const hasGiftRefill = useMemo(
+    () => items.some((item) => item.isGiftRefill),
+    [items],
+  )
+
+  const hasPaidRefill = useMemo(
+    () => items.some((item) => !item.isGiftRefill && isRefillProduct(item)),
+    [items],
+  )
+
   useEffect(() => {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ items, giftCardCode, giftCardDiscount }),
+      JSON.stringify({
+        items,
+        giftCardCode,
+        giftCardDiscount,
+        refillGiftCardCode,
+      }),
     )
-  }, [items, giftCardCode, giftCardDiscount])
+  }, [items, giftCardCode, giftCardDiscount, refillGiftCardCode])
 
-  const addToCart = useCallback((product) => {
-    setItems((prev) => {
-      const existing = prev.find((item) => item.id === product.id)
-      if (existing) {
-        return prev.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item,
-        )
+  const addToCart = useCallback(
+    (product, selectedColor = null) => {
+      if (isRefillProduct(product) && hasGiftRefill) {
+        setRefillBannerMessage({
+          type: 'error',
+          text: 'You already have a gift-card refill in your cart. Remove it first to order a paid refill.',
+        })
+        return false
       }
-      return [
+
+      if (productHasColors(product) && !selectedColor) {
+        return false
+      }
+
+      const lineId = buildCartLineId(product.id, { color: selectedColor })
+
+      setItems((prev) => {
+        const existing = prev.find((item) => item.id === lineId && !item.isGiftRefill)
+        if (existing) {
+          return prev.map((item) =>
+            item.id === lineId && !item.isGiftRefill
+              ? { ...item, quantity: item.quantity + 1 }
+              : item,
+          )
+        }
+        return [
+          ...prev,
+          {
+            id: lineId,
+            productId: product.id,
+            name: product.name,
+            price: Number(product.price),
+            image_base64: product.image_base64,
+            quantity: 1,
+            isGiftRefill: false,
+            color: selectedColor,
+          },
+        ]
+      })
+      setIsCartOpen(true)
+      return true
+    },
+    [hasGiftRefill],
+  )
+
+  const redeemGiftRefill = useCallback(
+    (product, code) => {
+      const result = validateRefillGiftCard(code)
+
+      if (!result.valid) {
+        setRefillBannerMessage({
+          type: 'error',
+          text: 'Invalid gift card code. Please check and try again.',
+        })
+        return false
+      }
+
+      if (hasPaidRefill) {
+        setRefillBannerMessage({
+          type: 'error',
+          text: 'Remove the paid refill from your cart before redeeming a gift-card refill.',
+        })
+        return false
+      }
+
+      const lineId = giftRefillLineId(product.id)
+      const alreadyInCart = items.some((item) => item.id === lineId)
+
+      if (alreadyInCart) {
+        setRefillBannerMessage({
+          type: 'error',
+          text: 'Your free gift-card refill is already in the cart (limit 1 per order).',
+        })
+        return false
+      }
+
+      setItems((prev) => [
         ...prev,
         {
-          id: product.id,
-          name: product.name,
-          price: Number(product.price),
+          id: lineId,
+          productId: product.id,
+          name: `${product.name} (Gift Card)`,
+          price: 0,
           image_base64: product.image_base64,
           quantity: 1,
+          isGiftRefill: true,
         },
-      ]
+      ])
+
+      setRefillGiftCardCode(result.code)
+      setRefillBannerMessage({
+        type: 'success',
+        text: `${result.label} added! Delivery fee ${GIFT_REFILL_DELIVERY_FEE} applies at checkout.`,
+      })
+      setIsCartOpen(true)
+      return true
+    },
+    [hasPaidRefill, items],
+  )
+
+  const removeFromCart = useCallback((lineId) => {
+    setItems((prev) => {
+      const next = prev.filter((item) => item.id !== lineId)
+      if (isGiftRefillLineId(lineId)) {
+        setRefillGiftCardCode('')
+        setRefillBannerMessage(null)
+      }
+      return next
     })
-    setIsCartOpen(true)
   }, [])
 
-  const removeFromCart = useCallback((productId) => {
-    setItems((prev) => prev.filter((item) => item.id !== productId))
-  }, [])
-
-  const updateQuantity = useCallback((productId, quantity) => {
+  const updateQuantity = useCallback((lineId, quantity) => {
     if (quantity < 1) return
+    if (isGiftRefillLineId(lineId)) return
+
     setItems((prev) =>
       prev.map((item) =>
-        item.id === productId ? { ...item, quantity } : item,
+        item.id === lineId ? { ...item, quantity } : item,
       ),
     )
   }, [])
@@ -78,11 +202,13 @@ export function CartProvider({ children }) {
     setItems([])
     setGiftCardCode('')
     setGiftCardDiscount(0)
+    setRefillGiftCardCode('')
     setGiftCardMessage(null)
+    setRefillBannerMessage(null)
   }, [])
 
   const applyGiftCard = useCallback((code) => {
-    const result = validateGiftCard(code)
+    const result = validatePercentGiftCard(code)
 
     if (!result.valid) {
       setGiftCardCode('')
@@ -111,12 +237,20 @@ export function CartProvider({ children }) {
     [items],
   )
 
+  const deliveryFee = useMemo(
+    () => (hasGiftRefill ? GIFT_REFILL_DELIVERY_FEE : 0),
+    [hasGiftRefill],
+  )
+
   const discountAmount = useMemo(
     () => (giftCardDiscount > 0 ? (subtotal * giftCardDiscount) / 100 : 0),
     [subtotal, giftCardDiscount],
   )
 
-  const total = useMemo(() => Math.max(0, subtotal - discountAmount), [subtotal, discountAmount])
+  const total = useMemo(
+    () => Math.max(0, subtotal - discountAmount + deliveryFee),
+    [subtotal, discountAmount, deliveryFee],
+  )
 
   const itemCount = useMemo(
     () => items.reduce((sum, item) => sum + item.quantity, 0),
@@ -130,13 +264,18 @@ export function CartProvider({ children }) {
     items,
     itemCount,
     subtotal,
+    deliveryFee,
     discountAmount,
     total,
+    hasGiftRefill,
     giftCardCode,
     giftCardDiscount,
+    refillGiftCardCode,
     giftCardMessage,
+    refillBannerMessage,
     isCartOpen,
     addToCart,
+    redeemGiftRefill,
     removeFromCart,
     updateQuantity,
     clearCart,
@@ -145,6 +284,7 @@ export function CartProvider({ children }) {
     openCart,
     closeCart,
     setGiftCardMessage,
+    setRefillBannerMessage,
   }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
