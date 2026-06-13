@@ -27,6 +27,9 @@ const PRODUCT_SELECT = `
   )
 `
 
+const SETUP_HINT =
+  'Run supabase/setup_rls.sql in Supabase Dashboard → SQL Editor to allow public product reads.'
+
 /** Flatten Supabase product + relation into app product shape. */
 export function normalizeProduct(row) {
   const colors = normalizeColorRows(row.whatsapp_product_colors)
@@ -55,17 +58,18 @@ async function fetchProductsDirect() {
 }
 
 /**
- * Fetch products via the Vite dev API proxy (uses service role server-side).
+ * Fetch products via /api/products (dev Vite proxy or production serverless).
  */
 async function fetchProductsViaApi() {
   const response = await fetch('/api/products')
 
+  if (response.status === 404) {
+    throw new Error(SETUP_HINT)
+  }
+
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
-    throw new Error(
-      body.error ||
-        'Could not load products. Enable public read on whatsapp_products in Supabase (see supabase/enable_public_read.sql).',
-    )
+    throw new Error(body.error || SETUP_HINT)
   }
 
   const data = await response.json()
@@ -76,11 +80,24 @@ async function fetchProductsViaApi() {
  * Fetch all products with colors from whatsapp_product_colors.
  */
 export async function fetchProducts() {
-  const direct = await fetchProductsDirect()
-
-  if (direct.length > 0) {
-    return direct
+  try {
+    const direct = await fetchProductsDirect()
+    if (direct.length > 0) {
+      return direct
+    }
+  } catch (err) {
+    // RLS or schema error on direct client — try server API next
+    console.warn('Direct Supabase fetch failed:', err.message)
   }
 
-  return fetchProductsViaApi()
+  try {
+    const viaApi = await fetchProductsViaApi()
+    if (viaApi.length > 0) {
+      return viaApi
+    }
+  } catch (err) {
+    throw new Error(err.message || SETUP_HINT)
+  }
+
+  throw new Error(SETUP_HINT)
 }

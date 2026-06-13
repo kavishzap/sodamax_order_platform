@@ -82,7 +82,7 @@ export default function Store() {
             <p>
               {searchQuery
                 ? `No products found for "${searchQuery}"`
-                : 'No products available. If you have products in Supabase, run supabase/enable_public_read.sql in the SQL Editor to allow public read access.'}
+                : 'No products available. Run supabase/setup_rls.sql in Supabase SQL Editor to enable public read access.'}
             </p>
           </div>
         )}
