@@ -1,24 +1,24 @@
 -- Run this once in Supabase Dashboard → SQL Editor
 -- Enables public product + color reads for the deployed storefront
 
--- Products
-ALTER TABLE public.whatsapp_products ENABLE ROW LEVEL SECURITY;
+-- Catalog items (SodaMax storefront)
+ALTER TABLE public.whatsapp_bot_items ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow public read access" ON public.whatsapp_products;
+DROP POLICY IF EXISTS "Allow public read access" ON public.whatsapp_bot_items;
 
 CREATE POLICY "Allow public read access"
-  ON public.whatsapp_products
+  ON public.whatsapp_bot_items
   FOR SELECT
   TO anon, authenticated
-  USING (true);
+  USING (company = 'sodamax');
 
--- Product colors
-ALTER TABLE public.whatsapp_product_colors ENABLE ROW LEVEL SECURITY;
+-- Item colors
+ALTER TABLE public.whatsapp_bot_item_colors ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow public read access" ON public.whatsapp_product_colors;
+DROP POLICY IF EXISTS "Allow public read access" ON public.whatsapp_bot_item_colors;
 
 CREATE POLICY "Allow public read access"
-  ON public.whatsapp_product_colors
+  ON public.whatsapp_bot_item_colors
   FOR SELECT
   TO anon, authenticated
   USING (true);

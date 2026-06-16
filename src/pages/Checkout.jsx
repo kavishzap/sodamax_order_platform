@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import { useCart } from '../context/CartContext'
 import { formatPrice, toImageSrc } from '../utils/format'
+import { createOrder } from '../services/orders'
 import { buildOrderMessage, redirectToWhatsApp } from '../utils/whatsapp'
 
 export default function Checkout() {
@@ -54,28 +55,46 @@ export default function Checkout() {
     applyGiftCard(giftCardInput)
   }
 
-  const handlePlaceOrder = (e) => {
+  const handlePlaceOrder = async (e) => {
     e.preventDefault()
     if (!validate()) return
     if (items.length === 0) return
 
     setSubmitting(true)
+    setErrors((prev) => ({ ...prev, submit: '' }))
 
-    const message = buildOrderMessage({
-      customer: form,
-      items,
-      giftCardCode,
-      refillGiftCardCode,
-      subtotal,
-      discount: discountAmount,
-      deliveryFee,
-      total,
-    })
+    try {
+      const { order_ref: orderRef } = await createOrder({
+        customer: form,
+        items,
+        total,
+        deliveryFee,
+        discountAmount,
+      })
 
-    redirectToWhatsApp(message)
-    clearCart()
-    navigate('/')
-    setSubmitting(false)
+      const message = buildOrderMessage({
+        customer: form,
+        items,
+        giftCardCode,
+        refillGiftCardCode,
+        subtotal,
+        discount: discountAmount,
+        deliveryFee,
+        total,
+        orderRef,
+      })
+
+      redirectToWhatsApp(message)
+      clearCart()
+      navigate('/')
+    } catch (err) {
+      setErrors((prev) => ({
+        ...prev,
+        submit: err.message || 'Failed to place order. Please try again.',
+      }))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (items.length === 0) {
@@ -167,6 +186,12 @@ export default function Checkout() {
                   rows={2}
                 />
               </div>
+
+              {errors.submit && (
+                <p className="form-error checkout-form__submit-error" role="alert">
+                  {errors.submit}
+                </p>
+              )}
 
               <button
                 type="submit"

@@ -14,12 +14,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 const PRODUCT_SELECT = `
   id,
-  name,
+  product_name,
   image_base64,
+  description,
   price,
   created_at,
   updated_at,
-  whatsapp_product_colors (
+  whatsapp_bot_item_colors (
     id,
     color_name,
     color_hex,
@@ -30,13 +31,26 @@ const PRODUCT_SELECT = `
 const SETUP_HINT =
   'Run supabase/setup_rls.sql in Supabase Dashboard → SQL Editor to allow public product reads.'
 
-/** Flatten Supabase product + relation into app product shape. */
+function parseItemPrice(value) {
+  if (value == null || value === '') return 0
+  const parsed = Number(String(value).replace(/[^\d.-]/g, ''))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+/** Flatten whatsapp_bot_items row into app product shape. */
 export function normalizeProduct(row) {
-  const colors = normalizeColorRows(row.whatsapp_product_colors)
-  const { whatsapp_product_colors: _colors, ...product } = row
+  const colors = normalizeColorRows(row.whatsapp_bot_item_colors)
+  const {
+    whatsapp_bot_item_colors: _colors,
+    product_name,
+    price,
+    ...rest
+  } = row
 
   return {
-    ...product,
+    ...rest,
+    name: product_name?.trim() || 'Unnamed product',
+    price: parseItemPrice(price),
     colors,
   }
 }
@@ -46,9 +60,10 @@ export function normalizeProduct(row) {
  */
 async function fetchProductsDirect() {
   const { data, error } = await supabase
-    .from('whatsapp_products')
+    .from('whatsapp_bot_items')
     .select(PRODUCT_SELECT)
-    .order('name', { ascending: true })
+    .eq('company', 'sodamax')
+    .order('product_name', { ascending: true })
 
   if (error) {
     throw new Error(error.message)
@@ -77,7 +92,7 @@ async function fetchProductsViaApi() {
 }
 
 /**
- * Fetch all products with colors from whatsapp_product_colors.
+ * Fetch all products from whatsapp_bot_items (with colors when available).
  */
 export async function fetchProducts() {
   try {

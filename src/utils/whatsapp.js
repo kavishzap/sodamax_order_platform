@@ -14,12 +14,19 @@ export function buildOrderMessage({
   discount,
   deliveryFee,
   total,
+  orderRef,
 }) {
-  const lines = [
+  const lines = []
+
+  if (orderRef) {
+    lines.push(`Order ref: ${orderRef}`, '')
+  }
+
+  lines.push(
     `Customer: ${customer.fullName}`,
     `Phone: ${customer.phone}`,
     `Address: ${customer.address}`,
-  ]
+  )
 
   if (customer.notes?.trim()) {
     lines.push(`Notes: ${customer.notes.trim()}`)

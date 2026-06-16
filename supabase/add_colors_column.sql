@@ -1,8 +1,6 @@
--- Product colors are stored in whatsapp_product_colors (not on whatsapp_products).
--- See enable_public_read_colors.sql for RLS policy.
-
--- Example: add colors for a product
--- INSERT INTO public.whatsapp_product_colors (product_id, color_name, color_hex, sort_order)
--- VALUES
---   ('your-product-uuid', 'Black', '#000000', 0),
---   ('your-product-uuid', 'White', '#ffffff', 1);
+-- Colors are stored in whatsapp_bot_item_colors (linked to whatsapp_bot_items via item_id).
+-- Run in Supabase Dashboard → SQL Editor
+--
+-- Example:
+-- INSERT INTO public.whatsapp_bot_item_colors (item_id, color_name, color_hex, sort_order)
+-- VALUES ('<item-uuid>', 'Black', '#1a1a1a', 0);

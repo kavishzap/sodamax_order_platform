@@ -23,7 +23,7 @@ function guessColorHex(name) {
 }
 
 /**
- * Normalize colors from whatsapp_product_colors relation rows.
+ * Normalize colors from whatsapp_bot_item_colors relation rows.
  */
 export function normalizeColorRows(rows) {
   if (!Array.isArray(rows) || rows.length === 0) return []
@@ -41,9 +41,9 @@ export function normalizeColorRows(rows) {
 export function getProductColors(product) {
   if (!product) return []
 
-  // From whatsapp_product_colors relation (primary source)
-  if (Array.isArray(product.whatsapp_product_colors)) {
-    return normalizeColorRows(product.whatsapp_product_colors)
+  // From whatsapp_bot_item_colors relation (primary source)
+  if (Array.isArray(product.whatsapp_bot_item_colors)) {
+    return normalizeColorRows(product.whatsapp_bot_item_colors)
   }
 
   // Normalized colors array attached during fetch

@@ -20,17 +20,20 @@ export default async function handler(req, res) {
   try {
     const select = [
       'id',
-      'name',
+      'product_name',
       'image_base64',
+      'description',
       'price',
       'created_at',
       'updated_at',
-      'whatsapp_product_colors(id,color_name,color_hex,sort_order)',
+      'whatsapp_bot_item_colors(id,color_name,color_hex,sort_order)',
     ].join(',')
 
     const url =
-      `${supabaseUrl}/rest/v1/whatsapp_products` +
-      `?select=${encodeURIComponent(select)}&order=name.asc`
+      `${supabaseUrl}/rest/v1/whatsapp_bot_items` +
+      `?select=${encodeURIComponent(select)}` +
+      `&company=eq.sodamax` +
+      `&order=product_name.asc`
 
     const response = await fetch(url, {
       headers: {
