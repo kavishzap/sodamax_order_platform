@@ -1203,22 +1203,25 @@ ul {
   position: relative;
   width: 56px;
   height: 56px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  background: #fafafa;
-  border: 1px solid var(--color-border-light);
   flex-shrink: 0;
+  overflow: visible;
 }
 
-.summary-item__image-wrap img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
+.summary-item__image-wrap img,
 .summary-item__placeholder {
   width: 100%;
   height: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-light);
+  object-fit: cover;
+  display: block;
+}
+
+.summary-item__image-wrap img {
+  background: #fafafa;
+}
+
+.summary-item__placeholder {
   background: #f0f0f0;
 }
 
@@ -1237,6 +1240,14 @@ ul {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1;
+}
+
+.summary-item__qty-text {
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-right: 4px;
+  flex-shrink: 0;
 }
 
 .summary-item__info {
@@ -1251,9 +1262,10 @@ ul {
 .summary-item__name {
   font-size: 14px;
   font-weight: 500;
-  white-space: nowrap;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .summary-item__price {

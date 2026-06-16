@@ -225,6 +225,7 @@ export default function Checkout() {
                     </div>
                     <div className="summary-item__info">
                       <span className="summary-item__name">
+                        <span className="summary-item__qty-text">{item.quantity}×</span>
                         {item.name}
                         {item.color && (
                           <span className="summary-item__color"> ({item.color})</span>
