@@ -1,13 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { validatePercentGiftCard, validateRefillGiftCard } from '../config/giftCards'
 import {
+  BOTTLE_FREE_DELIVERY_MESSAGE,
   GIFT_REFILL_DELIVERY_FEE,
   buildCartLineId,
+  calculateDeliveryFee,
+  countBottles,
   giftRefillLineId,
+  shouldShowBottleDeliveryNote,
   isGiftRefillLineId,
   isRefillProduct,
 } from '../config/products'
 import { productHasColors } from '../utils/colors'
+import { getCachedProductImageBase64 } from '../services/productImages'
 
 const STORAGE_KEY = 'sodamax-cart'
 
@@ -93,11 +98,18 @@ export function CartProvider({ children }) {
       const lineId = buildCartLineId(product.id, { color: selectedColor })
 
       setItems((prev) => {
+        const imageBase64 =
+          product.image_base64 || getCachedProductImageBase64(product.id) || null
+
         const existing = prev.find((item) => item.id === lineId && !item.isGiftRefill)
         if (existing) {
           return prev.map((item) =>
             item.id === lineId && !item.isGiftRefill
-              ? { ...item, quantity: item.quantity + 1 }
+              ? {
+                  ...item,
+                  quantity: item.quantity + 1,
+                  image_base64: item.image_base64 || imageBase64,
+                }
               : item,
           )
         }
@@ -108,7 +120,7 @@ export function CartProvider({ children }) {
             productId: product.id,
             name: product.name,
             price: Number(product.price),
-            image_base64: product.image_base64,
+            image_base64: imageBase64,
             quantity: 1,
             isGiftRefill: false,
             color: selectedColor,
@@ -159,7 +171,7 @@ export function CartProvider({ children }) {
           productId: product.id,
           name: `${product.name} (Gift Card)`,
           price: 0,
-          image_base64: product.image_base64,
+          image_base64: product.image_base64 || getCachedProductImageBase64(product.id) || null,
           quantity: 1,
           isGiftRefill: true,
         },
@@ -238,8 +250,15 @@ export function CartProvider({ children }) {
   )
 
   const deliveryFee = useMemo(
-    () => (hasGiftRefill ? GIFT_REFILL_DELIVERY_FEE : 0),
-    [hasGiftRefill],
+    () => calculateDeliveryFee(items, hasGiftRefill),
+    [items, hasGiftRefill],
+  )
+
+  const bottleCount = useMemo(() => countBottles(items), [items])
+
+  const showBottleDeliveryNote = useMemo(
+    () => shouldShowBottleDeliveryNote(items),
+    [items],
   )
 
   const discountAmount = useMemo(
@@ -265,6 +284,9 @@ export function CartProvider({ children }) {
     itemCount,
     subtotal,
     deliveryFee,
+    bottleCount,
+    showBottleDeliveryNote,
+    bottleFreeDeliveryMessage: BOTTLE_FREE_DELIVERY_MESSAGE,
     discountAmount,
     total,
     hasGiftRefill,

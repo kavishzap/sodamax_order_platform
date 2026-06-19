@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { formatPrice } from '../utils/format'
@@ -9,24 +8,12 @@ export default function Cart() {
     items,
     subtotal,
     deliveryFee,
-    discountAmount,
     total,
-    giftCardCode,
-    refillGiftCardCode,
-    giftCardMessage,
+    showBottleDeliveryNote,
+    bottleFreeDeliveryMessage,
     isCartOpen,
     closeCart,
-    applyGiftCard,
-    removeGiftCard,
   } = useCart()
-
-  const [codeInput, setCodeInput] = useState('')
-
-  const handleApplyGiftCard = (e) => {
-    e.preventDefault()
-    if (!codeInput.trim()) return
-    applyGiftCard(codeInput)
-  }
 
   if (!isCartOpen) return null
 
@@ -71,40 +58,8 @@ export default function Cart() {
             </div>
 
             <div className="cart-drawer__footer">
-              {/* Gift card input */}
-              <form className="gift-card-form" onSubmit={handleApplyGiftCard}>
-                <input
-                  type="text"
-                  className="gift-card-form__input"
-                  placeholder="Gift card code"
-                  value={codeInput}
-                  onChange={(e) => setCodeInput(e.target.value)}
-                  aria-label="Gift card code"
-                />
-                <button type="submit" className="btn btn--secondary btn--sm">
-                  Apply
-                </button>
-              </form>
-
-              {giftCardMessage && (
-                <p className={`gift-card-form__message gift-card-form__message--${giftCardMessage.type}`}>
-                  {giftCardMessage.text}
-                </p>
-              )}
-
-              {giftCardCode && (
-                <div className="gift-card-applied">
-                  <span>Code: <strong>{giftCardCode}</strong></span>
-                  <button type="button" className="gift-card-applied__remove" onClick={removeGiftCard}>
-                    Remove
-                  </button>
-                </div>
-              )}
-
-              {refillGiftCardCode && (
-                <div className="gift-card-applied">
-                  <span>Refill card: <strong>{refillGiftCardCode}</strong></span>
-                </div>
+              {showBottleDeliveryNote && (
+                <p className="delivery-note">{bottleFreeDeliveryMessage}</p>
               )}
 
               <div className="cart-totals">
@@ -116,12 +71,6 @@ export default function Cart() {
                   <div className="cart-totals__row">
                     <span>Delivery fee</span>
                     <span>{formatPrice(deliveryFee)}</span>
-                  </div>
-                )}
-                {discountAmount > 0 && (
-                  <div className="cart-totals__row cart-totals__row--discount">
-                    <span>Gift card discount</span>
-                    <span>−{formatPrice(discountAmount)}</span>
                   </div>
                 )}
                 <div className="cart-totals__row cart-totals__row--total">

@@ -1,6 +1,12 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { createOrderInDb } from './api/lib/createOrder.js'
+import {
+  PRODUCT_COMPANY_FILTER,
+  PRODUCT_IMAGE_SELECT,
+  PRODUCT_LIST_ORDER,
+  PRODUCT_LIST_SELECT,
+} from './lib/catalogSelect.js'
 
 /**
  * Dev-only API route that fetches products with colors via service role.
@@ -31,22 +37,41 @@ function productsApiPlugin(env) {
         }
 
         try {
-          const select = [
-            'id',
-            'product_name',
-            'image_base64',
-            'description',
-            'price',
-            'created_at',
-            'updated_at',
-            'whatsapp_bot_item_colors(id,color_name,color_hex,sort_order)',
-          ].join(',')
+          const requestUrl = new URL(req.url, 'http://localhost')
+          const productId = requestUrl.searchParams.get('id')
+          const fields = requestUrl.searchParams.get('fields')
+
+          if (productId && fields === 'image') {
+            const url =
+              `${supabaseUrl}/rest/v1/whatsapp_bot_items` +
+              `?select=${encodeURIComponent(PRODUCT_IMAGE_SELECT)}` +
+              `&id=eq.${encodeURIComponent(productId)}` +
+              `&${PRODUCT_COMPANY_FILTER}` +
+              `&limit=1`
+
+            const response = await fetch(url, {
+              headers: {
+                apikey: serviceKey,
+                Authorization: `Bearer ${serviceKey}`,
+              },
+            })
+
+            if (!response.ok) {
+              const text = await response.text()
+              throw new Error(text || `Supabase error ${response.status}`)
+            }
+
+            const [row] = await response.json()
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ image_base64: row?.image_base64 ?? null }))
+            return
+          }
 
           const url =
             `${supabaseUrl}/rest/v1/whatsapp_bot_items` +
-            `?select=${encodeURIComponent(select)}` +
-            `&company=eq.sodamax` +
-            `&order=product_name.asc`
+            `?select=${encodeURIComponent(PRODUCT_LIST_SELECT)}` +
+            `&${PRODUCT_COMPANY_FILTER}` +
+            `&order=${PRODUCT_LIST_ORDER}`
 
           const response = await fetch(url, {
             headers: {

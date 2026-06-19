@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
+import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
-import { formatPrice, toImageSrc } from '../utils/format'
+import { formatPrice } from '../utils/format'
 import { createOrder } from '../services/orders'
 import { buildOrderMessage, redirectToWhatsApp } from '../utils/whatsapp'
+import ProductImage from '../components/ProductImage'
 
 export default function Checkout() {
   const navigate = useNavigate()
@@ -13,6 +15,8 @@ export default function Checkout() {
     subtotal,
     deliveryFee,
     discountAmount,
+    showBottleDeliveryNote,
+    bottleFreeDeliveryMessage,
     total,
     giftCardCode,
     refillGiftCardCode,
@@ -30,6 +34,7 @@ export default function Checkout() {
   })
   const [errors, setErrors] = useState({})
   const [giftCardInput, setGiftCardInput] = useState('')
+  const [showGiftCard, setShowGiftCard] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const handleChange = (e) => {
@@ -49,10 +54,18 @@ export default function Checkout() {
     return Object.keys(next).length === 0
   }
 
-  const handleApplyGiftCard = (e) => {
-    e.preventDefault()
+  const handleApplyGiftCard = () => {
     if (!giftCardInput.trim()) return
     applyGiftCard(giftCardInput)
+  }
+
+  const handleGiftCardToggle = (e) => {
+    const checked = e.target.checked
+    setShowGiftCard(checked)
+    if (!checked) {
+      setGiftCardInput('')
+      removeGiftCard()
+    }
   }
 
   const handlePlaceOrder = async (e) => {
@@ -110,6 +123,7 @@ export default function Checkout() {
             </Link>
           </div>
         </main>
+        <Footer />
       </div>
     )
   }
@@ -169,7 +183,7 @@ export default function Checkout() {
                   className={errors.address ? 'input--error' : ''}
                   value={form.address}
                   onChange={handleChange}
-                  placeholder="Street, city, postal code"
+                  placeholder="Street, city"
                   rows={3}
                 />
                 {errors.address && <span className="form-error">{errors.address}</span>}
@@ -186,6 +200,62 @@ export default function Checkout() {
                   rows={2}
                 />
               </div>
+
+              <div className="form-group form-group--checkbox">
+                <label className="form-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={showGiftCard}
+                    onChange={handleGiftCardToggle}
+                  />
+                  <span>Do you have a gift card?</span>
+                </label>
+              </div>
+
+              {showGiftCard && (
+                <div className="form-group checkout-form__gift-card">
+                  <div className="gift-card-form">
+                    <input
+                      type="text"
+                      className="gift-card-form__input"
+                      placeholder="Gift card code"
+                      value={giftCardInput}
+                      onChange={(e) => setGiftCardInput(e.target.value)}
+                      aria-label="Gift card code"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn--secondary btn--sm"
+                      onClick={handleApplyGiftCard}
+                    >
+                      Apply
+                    </button>
+                  </div>
+
+                  {giftCardMessage && (
+                    <p
+                      className={`gift-card-form__message gift-card-form__message--${giftCardMessage.type}`}
+                    >
+                      {giftCardMessage.text}
+                    </p>
+                  )}
+
+                  {giftCardCode && (
+                    <div className="gift-card-applied">
+                      <span>
+                        Code: <strong>{giftCardCode}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        className="gift-card-applied__remove"
+                        onClick={removeGiftCard}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {errors.submit && (
                 <p className="form-error checkout-form__submit-error" role="alert">
@@ -211,16 +281,16 @@ export default function Checkout() {
             <h2 className="checkout__section-title">Order Summary</h2>
 
             <ul className="summary-items">
-              {items.map((item) => {
-                const imageSrc = toImageSrc(item.image_base64)
-                return (
+              {items.map((item) => (
                   <li key={item.id} className="summary-item">
                     <div className="summary-item__image-wrap">
-                      {imageSrc ? (
-                        <img src={imageSrc} alt={item.name} />
-                      ) : (
-                        <div className="summary-item__placeholder" />
-                      )}
+                      <ProductImage
+                        productId={item.productId}
+                        imageBase64={item.image_base64}
+                        className="summary-item__image"
+                        skeletonClassName="summary-item__image-skeleton"
+                        eager
+                      />
                       <span className="summary-item__qty">{item.quantity}</span>
                     </div>
                     <div className="summary-item__info">
@@ -238,44 +308,17 @@ export default function Checkout() {
                       </span>
                     </div>
                   </li>
-                )
-              })}
+              ))}
             </ul>
-
-            {/* Gift card on checkout */}
-            <form className="gift-card-form" onSubmit={handleApplyGiftCard}>
-              <input
-                type="text"
-                className="gift-card-form__input"
-                placeholder="Gift card code"
-                value={giftCardInput}
-                onChange={(e) => setGiftCardInput(e.target.value)}
-                aria-label="Gift card code"
-              />
-              <button type="submit" className="btn btn--secondary btn--sm">
-                Apply
-              </button>
-            </form>
-
-            {giftCardMessage && (
-              <p className={`gift-card-form__message gift-card-form__message--${giftCardMessage.type}`}>
-                {giftCardMessage.text}
-              </p>
-            )}
-
-            {giftCardCode && (
-              <div className="gift-card-applied">
-                <span>Code: <strong>{giftCardCode}</strong></span>
-                <button type="button" className="gift-card-applied__remove" onClick={removeGiftCard}>
-                  Remove
-                </button>
-              </div>
-            )}
 
             {refillGiftCardCode && (
               <div className="gift-card-applied">
                 <span>Refill card: <strong>{refillGiftCardCode}</strong></span>
               </div>
+            )}
+
+            {showBottleDeliveryNote && (
+              <p className="delivery-note">{bottleFreeDeliveryMessage}</p>
             )}
 
             <div className="cart-totals">
@@ -303,6 +346,7 @@ export default function Checkout() {
           </aside>
         </div>
       </main>
+      <Footer />
     </div>
   )
 }

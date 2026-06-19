@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { formatPrice, toImageSrc } from '../utils/format'
+import { formatPrice } from '../utils/format'
 import ColorSelector, { getDefaultColor } from './ColorSelector'
+import ProductImage from './ProductImage'
 
 export default function ColorSelectModal({ product, colors, isOpen, onClose, onConfirm }) {
   const [selectedColor, setSelectedColor] = useState(() => getDefaultColor(product))
   const [error, setError] = useState('')
-  const imageSrc = toImageSrc(product?.image_base64)
 
   useEffect(() => {
     if (isOpen && product) {
@@ -64,9 +64,13 @@ export default function ColorSelectModal({ product, colors, isOpen, onClose, onC
         </div>
 
         <div className="color-modal__product">
-          {imageSrc && (
-            <img src={imageSrc} alt="" className="color-modal__image" />
-          )}
+          <ProductImage
+            productId={product.id}
+            imageBase64={product.image_base64}
+            className="color-modal__image"
+            skeletonClassName="color-modal__image-skeleton"
+            eager
+          />
           <div>
             <p className="color-modal__name">{product.name}</p>
             <p className="color-modal__price">{formatPrice(product.price)}</p>

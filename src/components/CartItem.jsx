@@ -1,20 +1,22 @@
-import { formatPrice, toImageSrc } from '../utils/format'
+import { formatPrice } from '../utils/format'
 import { useCart } from '../context/CartContext'
+import ProductImage from './ProductImage'
 
 export default function CartItem({ item }) {
   const { updateQuantity, removeFromCart } = useCart()
-  const imageSrc = toImageSrc(item.image_base64)
   const lineTotal = item.price * item.quantity
   const isGiftRefill = item.isGiftRefill
 
   return (
     <div className={`cart-item${isGiftRefill ? ' cart-item--gift' : ''}`}>
       <div className="cart-item__image-wrap">
-        {imageSrc ? (
-          <img src={imageSrc} alt={item.name} className="cart-item__image" />
-        ) : (
-          <div className="cart-item__placeholder" aria-hidden="true" />
-        )}
+        <ProductImage
+          productId={item.productId}
+          imageBase64={item.image_base64}
+          className="cart-item__image"
+          skeletonClassName="cart-item__image-skeleton"
+          eager
+        />
       </div>
 
       <div className="cart-item__details">

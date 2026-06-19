@@ -14,9 +14,9 @@
   --color-text: #1a1a1a;
   --color-text-muted: #6b6b6b;
   --color-text-light: #9a9a9a;
-  --color-primary: #c97818;
-  --color-primary-hover: #b56a14;
-  --color-accent: #c97818;
+  --color-primary: #bd8c39;
+  --color-primary-hover: #a57732;
+  --color-accent: #bd8c39;
   --color-accent-light: #f6a735;
   --color-success: #2e7d32;
   --color-success-bg: #e8f5e9;
@@ -33,6 +33,7 @@
   --transition: 0.2s ease;
   --header-height: 72px;
   --cart-width: 420px;
+  --cart-reveal: 44px;
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
@@ -91,6 +92,10 @@ ul {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+.page > main {
+  flex: 1;
 }
 
 /* --- Buttons --- */
@@ -295,7 +300,78 @@ ul {
   justify-content: center;
 }
 
+/* --- Footer --- */
+.footer {
+  margin-top: auto;
+  padding: 28px 24px;
+  text-align: center;
+  background: #fafafa;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.footer__text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.footer__tagline {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-light);
+}
+
 /* --- Store Page --- */
+.store-page {
+  flex: 1;
+  width: 100%;
+}
+
+.store-hero {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: min(56vw, 560px);
+  overflow: hidden;
+  background: #050301;
+}
+
+.store-hero__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.store-hero__sound-btn {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background var(--transition);
+}
+
+.store-hero__sound-btn:hover {
+  background: rgba(0, 0, 0, 0.78);
+}
+
+.store-hero__sound-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
 .store {
   flex: 1;
   max-width: 1200px;
@@ -304,9 +380,12 @@ ul {
   width: 100%;
 }
 
-.store__hero {
-  text-align: center;
-  margin-bottom: 24px;
+.store__title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  margin-bottom: 16px;
 }
 
 /* --- Gift card refill banner --- */
@@ -423,20 +502,6 @@ ul {
   border-radius: 99px;
 }
 
-.store__title {
-  font-size: clamp(28px, 5vw, 36px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-bottom: 8px;
-}
-
-.store__subtitle {
-  color: var(--color-text-muted);
-  font-size: 16px;
-  max-width: 520px;
-  margin: 0 auto;
-}
-
 .store__loading,
 .store__error,
 .store__empty {
@@ -497,6 +562,20 @@ ul {
   overflow: hidden;
 }
 
+.product-card__image-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.product-card__image-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
 .product-card__image {
   width: 100%;
   height: 100%;
@@ -542,6 +621,12 @@ ul {
   color: var(--color-text);
 }
 
+.product-card__description {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
 .product-card__btn {
   margin-top: auto;
   width: 100%;
@@ -550,6 +635,100 @@ ul {
 .product-card__colors-hint {
   font-size: 12px;
   color: var(--color-text-muted);
+}
+
+.product-image {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.product-image__img,
+.summary-item__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.product-card__image-skeleton,
+.product-image__skeleton,
+.cart-item__image-skeleton,
+.summary-item__image-skeleton,
+.color-modal__image-skeleton {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  background: linear-gradient(90deg, #f2f2f2 25%, #e6e6e6 50%, #f2f2f2 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.product-card--skeleton {
+  pointer-events: none;
+}
+
+.product-card--skeleton:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.product-card__skeleton-line {
+  height: 12px;
+  border-radius: 4px;
+  background: #ececec;
+}
+
+.product-card__skeleton-line--title {
+  width: 75%;
+  height: 14px;
+}
+
+.product-card__skeleton-line--price {
+  width: 40%;
+}
+
+.product-card__skeleton-line--text {
+  width: 92%;
+}
+
+.product-card__skeleton-btn {
+  margin-top: auto;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: #ececec;
+}
+
+.summary-item__image-wrap .product-image,
+.summary-item__image-wrap .product-image__img,
+.summary-item__image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.cart-item__image-wrap .product-image,
+.cart-item__image-wrap .product-image__img {
+  width: 100%;
+  height: 100%;
+}
+
+.color-modal__product .product-image {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
 }
 
 /* --- Color select modal --- */
@@ -754,14 +933,15 @@ ul {
   top: 0;
   right: 0;
   bottom: 0;
-  width: var(--cart-width);
-  max-width: 100vw;
+  width: min(var(--cart-width), calc(100vw - var(--cart-reveal)));
+  max-width: calc(100vw - var(--cart-reveal));
   background: var(--color-surface);
   z-index: 201;
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-lg);
   animation: slideIn 0.25s ease;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
 }
 
 @keyframes slideIn {
@@ -1026,6 +1206,16 @@ ul {
   color: var(--color-error);
 }
 
+.delivery-note {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+  padding: 10px 12px;
+  background: #fafafa;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+}
+
 /* --- Cart Totals --- */
 .cart-totals {
   display: flex;
@@ -1175,6 +1365,32 @@ ul {
 .form-group textarea.input--error {
   border-color: var(--color-error);
   background: var(--color-error-bg);
+}
+
+.form-group--checkbox {
+  margin-top: 4px;
+}
+
+.form-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.form-checkbox input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.checkout-form__gift-card {
+  margin-top: -4px;
 }
 
 .form-error {
@@ -1376,10 +1592,6 @@ ul {
   .checkout__form-section,
   .checkout__summary {
     padding: 20px;
-  }
-
-  :root {
-    --cart-width: 100vw;
   }
 }
 

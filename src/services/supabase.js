@@ -1,5 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { normalizeColorRows } from '../utils/colors'
+import {
+  PRODUCT_IMAGE_SELECT,
+  PRODUCT_LIST_SELECT,
+} from '../../lib/catalogSelect.js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -11,22 +15,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-const PRODUCT_SELECT = `
-  id,
-  product_name,
-  image_base64,
-  description,
-  price,
-  created_at,
-  updated_at,
-  whatsapp_bot_item_colors (
-    id,
-    color_name,
-    color_hex,
-    sort_order
-  )
-`
 
 const SETUP_HINT =
   'Run supabase/setup_rls.sql in Supabase Dashboard → SQL Editor to allow public product reads.'
@@ -52,17 +40,19 @@ export function normalizeProduct(row) {
     name: product_name?.trim() || 'Unnamed product',
     price: parseItemPrice(price),
     colors,
+    image_base64: row.image_base64 ?? null,
   }
 }
 
 /**
- * Fetch products via the direct Supabase client (requires public RLS read policy).
+ * Fetch product list without images (fast initial load).
  */
 async function fetchProductsDirect() {
   const { data, error } = await supabase
     .from('whatsapp_bot_items')
-    .select(PRODUCT_SELECT)
+    .select(PRODUCT_LIST_SELECT)
     .eq('company', 'sodamax')
+    .order('sort_order', { ascending: true })
     .order('product_name', { ascending: true })
 
   if (error) {
@@ -92,7 +82,7 @@ async function fetchProductsViaApi() {
 }
 
 /**
- * Fetch all products from whatsapp_bot_items (with colors when available).
+ * Fetch catalog metadata only — images load lazily per product.
  */
 export async function fetchProducts() {
   try {
@@ -101,7 +91,6 @@ export async function fetchProducts() {
       return direct
     }
   } catch (err) {
-    // RLS or schema error on direct client — try server API next
     console.warn('Direct Supabase fetch failed:', err.message)
   }
 
@@ -115,4 +104,20 @@ export async function fetchProducts() {
   }
 
   throw new Error(SETUP_HINT)
+}
+
+/** Fetch a single product image (lazy load). */
+export async function fetchProductImageBase64(productId) {
+  const { data, error } = await supabase
+    .from('whatsapp_bot_items')
+    .select(PRODUCT_IMAGE_SELECT)
+    .eq('id', productId)
+    .eq('company', 'sodamax')
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return data?.image_base64 ?? null
 }
