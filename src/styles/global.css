@@ -1177,6 +1177,19 @@ ul {
   background: var(--color-error-bg);
 }
 
+.form-group input[readonly],
+.form-group input:read-only {
+  background: var(--color-bg-muted, #f0f0f0);
+  color: var(--color-text-muted, #666);
+  cursor: not-allowed;
+}
+
+.form-group input[readonly]:focus,
+.form-group input:read-only:focus {
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
 .form-error {
   font-size: 12px;
   color: var(--color-error);

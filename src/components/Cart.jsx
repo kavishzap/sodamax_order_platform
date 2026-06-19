@@ -1,10 +1,16 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { formatPrice } from '../utils/format'
 import CartItem from './CartItem'
 
 export default function Cart() {
+  const [searchParams] = useSearchParams()
+  const sessionToken = searchParams.get('s')
+  const checkoutPath = sessionToken
+    ? `/checkout?s=${encodeURIComponent(sessionToken)}`
+    : '/checkout'
+
   const {
     items,
     subtotal,
@@ -131,7 +137,7 @@ export default function Cart() {
               </div>
 
               <Link
-                to="/checkout"
+                to={checkoutPath}
                 className="btn btn--primary btn--full"
                 onClick={closeCart}
               >

@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import Header from '../components/Header'
 import { useCart } from '../context/CartContext'
 import { useCheckoutSession } from '../hooks/useCheckoutSession'
 import { formatPrice, toImageSrc } from '../utils/format'
 import { formatPhoneForDisplay } from '../utils/phone'
+import { redirectToWhatsAppWithOrderRef } from '../utils/whatsapp'
 import { createOrder } from '../services/orders'
 
 export default function Checkout() {
-  const navigate = useNavigate()
   const {
     session,
     phone: whatsAppPhone,
@@ -46,8 +46,8 @@ export default function Checkout() {
     if (!session) return
     setForm((prev) => ({
       ...prev,
-      fullName: prev.fullName || session.name || '',
-      phone: prev.phone || session.phone || '',
+      fullName: session.name || prev.fullName || '',
+      phone: session.phone || prev.phone || '',
     }))
   }, [session])
 
@@ -92,7 +92,7 @@ export default function Checkout() {
       })
 
       clearCart()
-      navigate('/order-success', { state: { orderRef } })
+      redirectToWhatsAppWithOrderRef(orderRef)
     } catch (err) {
       setErrors((prev) => ({
         ...prev,
@@ -164,10 +164,11 @@ export default function Checkout() {
                   onChange={handleChange}
                   placeholder="John Doe"
                   autoComplete="name"
-                  disabled={lockedName}
+                  readOnly={lockedName}
+                  aria-readonly={lockedName}
                 />
                 {lockedName && (
-                  <span className="form-hint">Linked from WhatsApp profile.</span>
+                  <span className="form-hint">From your WhatsApp profile — cannot be changed.</span>
                 )}
                 {errors.fullName && <span className="form-error">{errors.fullName}</span>}
               </div>
@@ -179,14 +180,15 @@ export default function Checkout() {
                   name="phone"
                   type="tel"
                   className={errors.phone ? 'input--error' : ''}
-                  value={form.phone}
+                  value={lockedPhone ? formatPhoneForDisplay(form.phone) : form.phone}
                   onChange={handleChange}
                   placeholder="52525252"
                   autoComplete="tel"
-                  disabled={lockedPhone}
+                  readOnly={lockedPhone}
+                  aria-readonly={lockedPhone}
                 />
                 {lockedPhone && (
-                  <span className="form-hint">Linked from WhatsApp — use the same number to confirm your order.</span>
+                  <span className="form-hint">From WhatsApp — use the same number to confirm your order.</span>
                 )}
                 {errors.phone && <span className="form-error">{errors.phone}</span>}
               </div>

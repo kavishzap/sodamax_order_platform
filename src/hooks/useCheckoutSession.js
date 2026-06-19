@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 const STORAGE_KEY = 'sodamax-checkout-session'
+
+const CheckoutSessionContext = createContext(null)
 
 function readStoredSession() {
   try {
@@ -23,10 +25,7 @@ function persistSession(session) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
 }
 
-/**
- * Resolve signed checkout session from ?s= token (verified server-side).
- */
-export function useCheckoutSession() {
+export function CheckoutSessionProvider({ children }) {
   const [searchParams] = useSearchParams()
   const token = useMemo(() => searchParams.get('s') || '', [searchParams])
   const [storedSession, setStoredSession] = useState(readStoredSession)
@@ -76,17 +75,33 @@ export function useCheckoutSession() {
 
   const session = storedSession
   const fromWhatsApp = Boolean(session?.phone)
-  const lockedName = Boolean(session?.name)
-  const lockedPhone = Boolean(session?.phone)
+  const lockedPhone = fromWhatsApp
+  const lockedName = fromWhatsApp && Boolean(session?.name)
 
-  return {
-    session,
-    phone: session?.phone || '',
-    name: session?.name || '',
-    fromWhatsApp,
-    lockedName,
-    lockedPhone,
-    loading,
-    error,
+  const value = useMemo(
+    () => ({
+      session,
+      phone: session?.phone || '',
+      name: session?.name || '',
+      fromWhatsApp,
+      lockedName,
+      lockedPhone,
+      loading,
+      error,
+    }),
+    [session, fromWhatsApp, lockedName, lockedPhone, loading, error],
+  )
+
+  return (
+    <CheckoutSessionContext.Provider value={value}>{children}</CheckoutSessionContext.Provider>
+  )
+}
+
+/** Resolve signed checkout session from ?s= token (verified server-side). */
+export function useCheckoutSession() {
+  const context = useContext(CheckoutSessionContext)
+  if (!context) {
+    throw new Error('useCheckoutSession must be used within CheckoutSessionProvider')
   }
+  return context
 }

@@ -94,6 +94,10 @@ export function redirectToWhatsApp(message) {
   window.open(url, '_blank', 'noopener,noreferrer')
 }
 
+/**
+ * Open WhatsApp with the order ref pre-filled so the bot can resume checkout.
+ * Uses same-window navigation for reliable mobile deep linking.
+ */
 export function redirectToWhatsAppWithOrderRef(orderRef) {
-  redirectToWhatsApp(buildContinueMessage(orderRef))
+  window.location.href = buildContinueOnWhatsAppUrl(orderRef)
 }
