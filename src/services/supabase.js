@@ -1,16 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
+import { resolveSupabaseClientEnv } from '../../api/lib/env.js'
 import { normalizeColorRows } from '../utils/colors'
 import {
   PRODUCT_IMAGE_SELECT,
   PRODUCT_LIST_SELECT,
 } from '../../lib/catalogSelect.js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const { supabaseUrl, supabaseAnonKey } = resolveSupabaseClientEnv()
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
-    'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Check your .env file.',
+    'Missing Supabase URL or anon key. Set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY (or NEXT_PUBLIC_* equivalents) in .env',
   )
 }
 
