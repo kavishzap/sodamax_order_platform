@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import ProductImage from '../components/ProductImage'
 import { useCart } from '../context/CartContext'
 import { useCheckoutSession } from '../hooks/useCheckoutSession'
-import { formatPrice, toImageSrc } from '../utils/format'
+import { formatPrice } from '../utils/format'
 import { formatPhoneForDisplay } from '../utils/phone'
 import { redirectToWhatsAppWithOrderRef } from '../utils/whatsapp'
 import { createOrder } from '../services/orders'
@@ -40,6 +41,7 @@ export default function Checkout() {
     fullName: '',
     phone: '',
     address: '',
+    notes: '',
   })
   const [errors, setErrors] = useState({})
   const [giftCardInput, setGiftCardInput] = useState('')
@@ -208,25 +210,19 @@ export default function Checkout() {
 
               <div className="form-group">
                 <label htmlFor="address">Address *</label>
-                <input
+                <textarea
                   id="address"
                   name="address"
-                  type="text"
                   className={errors.address ? 'input--error' : ''}
                   value={form.address}
                   onChange={handleChange}
-<<<<<<< HEAD
-                  placeholder="Street, city"
-                  rows={3}
-=======
                   placeholder="Street, city, postal code"
                   autoComplete="street-address"
->>>>>>> f9f17958a41f487b3f519f92f13c258fbfae0f34
+                  rows={3}
                 />
                 {errors.address && <span className="form-error">{errors.address}</span>}
               </div>
 
-<<<<<<< HEAD
               <div className="form-group">
                 <label htmlFor="notes">Notes (optional)</label>
                 <textarea
@@ -295,8 +291,6 @@ export default function Checkout() {
                 </div>
               )}
 
-=======
->>>>>>> f9f17958a41f487b3f519f92f13c258fbfae0f34
               {errors.submit && (
                 <p className="form-error checkout-form__submit-error" role="alert">
                   {errors.submit}
@@ -347,38 +341,6 @@ export default function Checkout() {
               ))}
             </ul>
 
-<<<<<<< HEAD
-=======
-            <form className="gift-card-form" onSubmit={handleApplyGiftCard}>
-              <input
-                type="text"
-                className="gift-card-form__input"
-                placeholder="Gift card code"
-                value={giftCardInput}
-                onChange={(e) => setGiftCardInput(e.target.value)}
-                aria-label="Gift card code"
-              />
-              <button type="submit" className="btn btn--secondary btn--sm">
-                Apply
-              </button>
-            </form>
-
-            {giftCardMessage && (
-              <p className={`gift-card-form__message gift-card-form__message--${giftCardMessage.type}`}>
-                {giftCardMessage.text}
-              </p>
-            )}
-
-            {giftCardCode && (
-              <div className="gift-card-applied">
-                <span>Code: <strong>{giftCardCode}</strong></span>
-                <button type="button" className="gift-card-applied__remove" onClick={removeGiftCard}>
-                  Remove
-                </button>
-              </div>
-            )}
-
->>>>>>> f9f17958a41f487b3f519f92f13c258fbfae0f34
             {refillGiftCardCode && (
               <div className="gift-card-applied">
                 <span>Refill card: <strong>{refillGiftCardCode}</strong></span>
