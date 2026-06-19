@@ -2,18 +2,19 @@
  * Production API route (Vercel serverless).
  * Uses service role server-side — never expose this key with VITE_ prefix.
  */
+import { resolveSupabaseEnv } from './lib/env.js'
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const { supabaseUrl, serviceKey } = resolveSupabaseEnv()
 
   if (!supabaseUrl || !serviceKey) {
     return res.status(500).json({
       error:
-        'Server misconfigured. Add VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to your hosting environment, or run supabase/setup_rls.sql in Supabase.',
+        'Server misconfigured. Add Supabase URL and service role key (SUPABASE_SERVICE_ROLE_KEY or SERVICE_ROLE_KEY) to your hosting environment, or run supabase/setup_rls.sql in Supabase.',
     })
   }
 

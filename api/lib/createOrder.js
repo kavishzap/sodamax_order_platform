@@ -1,8 +1,4 @@
-function generateOrderRef() {
-  const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-  const suffix = String(Math.floor(Math.random() * 900) + 100)
-  return `ORD-${date}-${suffix}`
-}
+import { normalizePhone } from '../../src/utils/phone.js'
 
 export function parseCityFromAddress(address) {
   const parts = address
@@ -21,7 +17,7 @@ function buildLineItems(items, { deliveryFee = 0, discountAmount = 0 } = {}) {
     const quantity = Number(item.quantity)
 
     return {
-      item_id: item.productId,
+      item_id: item.productId ?? null,
       product_name: productName,
       quantity,
       unit_price: unitPrice,
@@ -53,31 +49,28 @@ function buildLineItems(items, { deliveryFee = 0, discountAmount = 0 } = {}) {
   return lines
 }
 
-async function supabaseRequest(supabaseUrl, serviceKey, path, options = {}) {
-  const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
-    ...options,
+async function callOrdersEdge(payload, { supabaseUrl, serviceKey }) {
+  const response = await fetch(`${supabaseUrl}/functions/v1/whatsapp-bot-orders`, {
+    method: 'POST',
     headers: {
-      apikey: serviceKey,
       Authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
       'Content-Type': 'application/json',
-      ...(options.headers ?? {}),
     },
+    body: JSON.stringify(payload),
   })
 
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(text || `Supabase error ${response.status}`)
+  const body = await response.json().catch(() => ({}))
+
+  if (!response.ok || !body.success) {
+    throw new Error(body.error || body.message || `Order API failed (${response.status})`)
   }
 
-  if (response.status === 204) {
-    return null
-  }
-
-  return response.json()
+  return body.data
 }
 
 /**
- * Insert parent order + line items (service role).
+ * Create a draft order via whatsapp-bot-orders edge function (SM-xxx ref).
  */
 export async function createOrderInDb(
   { customer, items, total, deliveryFee, discountAmount },
@@ -97,83 +90,23 @@ export async function createOrderInDb(
   }
 
   const city = parseCityFromAddress(customer.address)
-  const address = customer.notes?.trim()
-    ? `${customer.address.trim()}\nNotes: ${customer.notes.trim()}`
-    : customer.address.trim()
+  const address = customer.address.trim()
 
   const lineItems = buildLineItems(items, { deliveryFee, discountAmount })
 
-  let order = null
-  let lastError = null
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const orderRef = generateOrderRef()
-
-    try {
-      const [inserted] = await supabaseRequest(
-        supabaseUrl,
-        serviceKey,
-        'whatsapp_bot_orders',
-        {
-          method: 'POST',
-          headers: { Prefer: 'return=representation' },
-          body: JSON.stringify({
-            order_ref: orderRef,
-            company: 'sodamax',
-            customer_name: customer.fullName.trim(),
-            customer_phone_number: customer.phone.trim(),
-            city,
-            address,
-            total: Number(total),
-            status: 'pending',
-          }),
-        },
-      )
-
-      order = inserted
-      break
-    } catch (err) {
-      lastError = err
-      if (!String(err.message).includes('whatsapp_bot_orders_order_ref_key')) {
-        throw err
-      }
-    }
-  }
-
-  if (!order) {
-    throw lastError || new Error('Failed to create order')
-  }
-
-  const orderItemsPayload = lineItems.map((line) => {
-    const row = {
-      order_id: order.id,
-      product_name: line.product_name,
-      quantity: line.quantity,
-      unit_price: line.unit_price,
-      line_total: line.line_total,
-      sort_order: line.sort_order,
-    }
-    if (line.item_id) {
-      row.item_id = line.item_id
-    }
-    return row
-  })
-
-  try {
-    await supabaseRequest(supabaseUrl, serviceKey, 'whatsapp_bot_orders_items', {
-      method: 'POST',
-      headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify(orderItemsPayload),
-    })
-  } catch (err) {
-    await supabaseRequest(
-      supabaseUrl,
-      serviceKey,
-      `whatsapp_bot_orders?id=eq.${order.id}`,
-      { method: 'DELETE', headers: { Prefer: 'return=minimal' } },
-    ).catch(() => {})
-    throw err
-  }
+  const order = await callOrdersEdge(
+    {
+      company: 'sodamax',
+      status: 'draft',
+      customer_name: customer.fullName.trim(),
+      customer_phone_number: normalizePhone(customer.phone),
+      city,
+      address,
+      total: Number(total),
+      items: lineItems,
+    },
+    { supabaseUrl, serviceKey },
+  )
 
   return {
     id: order.id,

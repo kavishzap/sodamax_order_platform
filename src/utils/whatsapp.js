@@ -1,9 +1,24 @@
 import { formatPrice } from './format'
 
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '230XXXXXXXX'
+const WHATSAPP_NUMBER =
+  import.meta.env.VITE_SODAMAX_BOT_WHATSAPP_NUMBER ||
+  import.meta.env.VITE_WHATSAPP_NUMBER ||
+  '23058875050'
 
 /**
- * Build the order summary message for WhatsApp.
+ * Short message sent back to the bot to resume checkout.
+ */
+export function buildContinueMessage(orderRef) {
+  return `My order ${orderRef}`
+}
+
+export function buildContinueOnWhatsAppUrl(orderRef) {
+  const encoded = encodeURIComponent(buildContinueMessage(orderRef))
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`
+}
+
+/**
+ * Build the full order summary message for WhatsApp (legacy).
  */
 export function buildOrderMessage({
   customer,
@@ -71,10 +86,14 @@ export function buildOrderMessage({
 }
 
 /**
- * Open WhatsApp with a pre-filled order message.
+ * Open WhatsApp with a pre-filled message.
  */
 export function redirectToWhatsApp(message) {
   const encoded = encodeURIComponent(message)
   const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`
   window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+export function redirectToWhatsAppWithOrderRef(orderRef) {
+  redirectToWhatsApp(buildContinueMessage(orderRef))
 }

@@ -1,6 +1,8 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { createOrderInDb } from './api/lib/createOrder.js'
+import { resolveSupabaseEnv } from './api/lib/env.js'
+import { verifyCheckoutSession } from './api/lib/checkoutSession.js'
 
 /**
  * Dev-only API route that fetches products with colors via service role.
@@ -16,15 +18,14 @@ function productsApiPlugin(env) {
           return
         }
 
-        const supabaseUrl = env.VITE_SUPABASE_URL
-        const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
+        const { supabaseUrl, serviceKey } = resolveSupabaseEnv(env)
 
         if (!supabaseUrl || !serviceKey) {
           res.statusCode = 500
           res.end(
             JSON.stringify({
               error:
-                'Missing SUPABASE_SERVICE_ROLE_KEY in .env (required until RLS public read is enabled).',
+                'Missing Supabase config. Set SUPABASE_SERVICE_ROLE_KEY or SERVICE_ROLE_KEY plus VITE_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL in .env',
             }),
           )
           return
@@ -70,6 +71,40 @@ function productsApiPlugin(env) {
         }
       })
 
+      server.middlewares.use('/api/checkout-session', async (req, res) => {
+        if (req.method !== 'GET') {
+          res.statusCode = 405
+          res.end(JSON.stringify({ error: 'Method not allowed' }))
+          return
+        }
+
+        const requestUrl = new URL(req.url, 'http://localhost')
+        const token = requestUrl.searchParams.get('s')
+
+        if (!token) {
+          res.statusCode = 400
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Missing session token' }))
+          return
+        }
+
+        const session = verifyCheckoutSession(token, env)
+        if (!session) {
+          res.statusCode = 401
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              error: 'Invalid or expired checkout link. Open the store again from WhatsApp.',
+            }),
+          )
+          return
+        }
+
+        res.statusCode = 200
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify(session))
+      })
+
       server.middlewares.use('/api/orders', async (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405
@@ -77,15 +112,14 @@ function productsApiPlugin(env) {
           return
         }
 
-        const supabaseUrl = env.VITE_SUPABASE_URL
-        const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
+        const { supabaseUrl, serviceKey } = resolveSupabaseEnv(env)
 
         if (!supabaseUrl || !serviceKey) {
           res.statusCode = 500
           res.end(
             JSON.stringify({
               error:
-                'Missing SUPABASE_SERVICE_ROLE_KEY in .env (required for order creation).',
+                'Missing Supabase config. Set SUPABASE_SERVICE_ROLE_KEY or SERVICE_ROLE_KEY plus VITE_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL in .env',
             }),
           )
           return
@@ -117,6 +151,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
+    envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
     plugins: [react(), productsApiPlugin(env)],
   }
 })
