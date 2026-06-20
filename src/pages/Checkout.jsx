@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import ProductImage from '../components/ProductImage'
@@ -11,6 +11,7 @@ import { redirectToWhatsAppWithOrderRef } from '../utils/whatsapp'
 import { createOrder } from '../services/orders'
 
 export default function Checkout() {
+  const navigate = useNavigate()
   const {
     session,
     phone: whatsAppPhone,
@@ -105,6 +106,7 @@ export default function Checkout() {
         discountAmount,
       })
 
+      navigate('/', { replace: true })
       clearCart()
       redirectToWhatsAppWithOrderRef(orderRef)
     } catch (err) {

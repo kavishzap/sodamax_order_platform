@@ -127,7 +127,6 @@ export function CartProvider({ children }) {
           },
         ]
       })
-      setIsCartOpen(true)
       return true
     },
     [hasGiftRefill],
@@ -182,7 +181,6 @@ export function CartProvider({ children }) {
         type: 'success',
         text: `${result.label} added! Delivery fee ${GIFT_REFILL_DELIVERY_FEE} applies at checkout.`,
       })
-      setIsCartOpen(true)
       return true
     },
     [hasPaidRefill, items],
