@@ -44,7 +44,9 @@ export default function ProductCard({ product }) {
           <h3 className="product-card__name">{product.name}</h3>
           <p className="product-card__price">{formatPrice(product.price)}</p>
           {product.description?.trim() && (
-            <p className="product-card__description">{product.description.trim()}</p>
+            <p className="product-card__description" title={product.description.trim()}>
+              {product.description.trim()}
+            </p>
           )}
           {hasColors && (
             <p className="product-card__colors-hint">{colors.length} colors available</p>

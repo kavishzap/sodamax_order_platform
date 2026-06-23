@@ -1,9 +1,5 @@
 import { formatPrice } from './format'
-
-const WHATSAPP_NUMBER =
-  import.meta.env.VITE_SODAMAX_BOT_WHATSAPP_NUMBER ||
-  import.meta.env.VITE_WHATSAPP_NUMBER ||
-  '23058875050'
+import { WHATSAPP_NUMBER } from '../config/social'
 
 /**
  * Short message sent back to the bot to resume checkout.

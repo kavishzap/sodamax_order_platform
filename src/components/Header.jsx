@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 
-const LOGO_SRC = '/logo.jpeg'
+const LOGO_SRC = '/SodaMax_black_transparent.png'
 const APP_NAME = 'SodaMax Mauritius'
 
 export default function Header({ searchQuery, onSearchChange, showSearch = true }) {
@@ -10,9 +10,8 @@ export default function Header({ searchQuery, onSearchChange, showSearch = true 
   return (
     <header className="header">
       <div className="header__inner">
-        <Link to="/" className="header__brand">
+        <Link to="/" className="header__brand" aria-label={`${APP_NAME} home`}>
           <img src={LOGO_SRC} alt={APP_NAME} className="header__logo-img" />
-          <span className="header__name">{APP_NAME}</span>
         </Link>
 
         {showSearch ? (
