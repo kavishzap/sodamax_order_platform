@@ -36,6 +36,8 @@ export default function Checkout() {
     applyGiftCard,
     removeGiftCard,
     clearCart,
+    updateQuantity,
+    removeFromCart,
   } = useCart()
 
   const [form, setForm] = useState({
@@ -87,6 +89,14 @@ export default function Checkout() {
       setGiftCardInput('')
       removeGiftCard()
     }
+  }
+
+  const handleDecreaseQuantity = (item) => {
+    if (item.quantity <= 1) {
+      removeFromCart(item.id)
+      return
+    }
+    updateQuantity(item.id, item.quantity - 1)
   }
 
   const handlePlaceOrder = async (e) => {
@@ -314,32 +324,55 @@ export default function Checkout() {
 
             <ul className="summary-items">
               {items.map((item) => (
-                  <li key={item.id} className="summary-item">
-                    <div className="summary-item__image-wrap">
-                      <ProductImage
-                        productId={item.productId}
-                        imageBase64={item.image_base64}
-                        className="summary-item__image"
-                        skeletonClassName="summary-item__image-skeleton"
-                        eager
-                      />
-                      <span className="summary-item__qty">{item.quantity}</span>
-                    </div>
-                    <div className="summary-item__info">
-                      <span className="summary-item__name">
-                        <span className="summary-item__qty-text">{item.quantity}×</span>
-                        {item.name}
-                        {item.color && (
-                          <span className="summary-item__color"> ({item.color})</span>
-                        )}
-                      </span>
+                <li key={item.id} className="summary-item">
+                  <div className="summary-item__image-wrap">
+                    <ProductImage
+                      productId={item.productId}
+                      imageBase64={item.image_base64}
+                      className="summary-item__image"
+                      skeletonClassName="summary-item__image-skeleton"
+                      eager
+                    />
+                  </div>
+                  <div className="summary-item__details">
+                    <span className="summary-item__name">
+                      {item.name}
+                      {item.color && (
+                        <span className="summary-item__color"> ({item.color})</span>
+                      )}
+                    </span>
+                    <div className="summary-item__footer">
+                      {item.isGiftRefill ? (
+                        <span className="summary-item__gift-tag">Qty 1</span>
+                      ) : (
+                        <div className="quantity-control quantity-control--compact">
+                          <button
+                            type="button"
+                            className="quantity-control__btn"
+                            onClick={() => handleDecreaseQuantity(item)}
+                            aria-label={`Decrease quantity of ${item.name}`}
+                          >
+                            −
+                          </button>
+                          <span className="quantity-control__value">{item.quantity}</span>
+                          <button
+                            type="button"
+                            className="quantity-control__btn"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            aria-label={`Increase quantity of ${item.name}`}
+                          >
+                            +
+                          </button>
+                        </div>
+                      )}
                       <span className="summary-item__price">
                         {item.isGiftRefill
                           ? 'Free'
                           : formatPrice(item.price * item.quantity)}
                       </span>
                     </div>
-                  </li>
+                  </div>
+                </li>
               ))}
             </ul>
 

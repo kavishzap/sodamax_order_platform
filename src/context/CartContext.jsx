@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { validatePercentGiftCard, validateRefillGiftCard } from '../config/giftCards'
 import {
   BOTTLE_FREE_DELIVERY_MESSAGE,
@@ -12,11 +12,14 @@ import {
   isRefillProduct,
 } from '../config/products'
 import { productHasColors } from '../utils/colors'
-import { getCachedProductImageBase64 } from '../services/productImages'
 
 const STORAGE_KEY = 'sodamax-cart'
 
 const CartContext = createContext(null)
+
+function stripCartItemForStorage({ image_base64, ...item }) {
+  return item
+}
 
 function loadCart() {
   try {
@@ -30,8 +33,11 @@ function loadCart() {
       }
     }
     const parsed = JSON.parse(raw)
+    const items = Array.isArray(parsed.items)
+      ? parsed.items.map(stripCartItemForStorage)
+      : []
     return {
-      items: Array.isArray(parsed.items) ? parsed.items : [],
+      items,
       giftCardCode: parsed.giftCardCode ?? '',
       giftCardDiscount: parsed.giftCardDiscount ?? 0,
       refillGiftCardCode: parsed.refillGiftCardCode ?? '',
@@ -43,6 +49,22 @@ function loadCart() {
       giftCardDiscount: 0,
       refillGiftCardCode: '',
     }
+  }
+}
+
+function saveCart({ items, giftCardCode, giftCardDiscount, refillGiftCardCode }) {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        items: items.map(stripCartItemForStorage),
+        giftCardCode,
+        giftCardDiscount,
+        refillGiftCardCode,
+      }),
+    )
+  } catch {
+    // Images must not be persisted — cart still works in memory for this session.
   }
 }
 
@@ -58,6 +80,39 @@ export function CartProvider({ children }) {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [giftCardMessage, setGiftCardMessage] = useState(null)
   const [refillBannerMessage, setRefillBannerMessage] = useState(null)
+  const [cartToast, setCartToast] = useState(null)
+  const cartToastTimerRef = useRef(null)
+
+  const dismissCartToast = useCallback(() => {
+    if (cartToastTimerRef.current) {
+      clearTimeout(cartToastTimerRef.current)
+      cartToastTimerRef.current = null
+    }
+    setCartToast(null)
+  }, [])
+
+  const showCartToast = useCallback(
+    (productName) => {
+      if (cartToastTimerRef.current) {
+        clearTimeout(cartToastTimerRef.current)
+      }
+      setCartToast({ productName })
+      cartToastTimerRef.current = setTimeout(() => {
+        setCartToast(null)
+        cartToastTimerRef.current = null
+      }, 2000)
+    },
+    [],
+  )
+
+  useEffect(
+    () => () => {
+      if (cartToastTimerRef.current) {
+        clearTimeout(cartToastTimerRef.current)
+      }
+    },
+    [],
+  )
 
   const hasGiftRefill = useMemo(
     () => items.some((item) => item.isGiftRefill),
@@ -70,15 +125,7 @@ export function CartProvider({ children }) {
   )
 
   useEffect(() => {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        items,
-        giftCardCode,
-        giftCardDiscount,
-        refillGiftCardCode,
-      }),
-    )
+    saveCart({ items, giftCardCode, giftCardDiscount, refillGiftCardCode })
   }, [items, giftCardCode, giftCardDiscount, refillGiftCardCode])
 
   const addToCart = useCallback(
@@ -98,18 +145,11 @@ export function CartProvider({ children }) {
       const lineId = buildCartLineId(product.id, { color: selectedColor })
 
       setItems((prev) => {
-        const imageBase64 =
-          product.image_base64 || getCachedProductImageBase64(product.id) || null
-
         const existing = prev.find((item) => item.id === lineId && !item.isGiftRefill)
         if (existing) {
           return prev.map((item) =>
             item.id === lineId && !item.isGiftRefill
-              ? {
-                  ...item,
-                  quantity: item.quantity + 1,
-                  image_base64: item.image_base64 || imageBase64,
-                }
+              ? { ...item, quantity: item.quantity + 1 }
               : item,
           )
         }
@@ -120,16 +160,16 @@ export function CartProvider({ children }) {
             productId: product.id,
             name: product.name,
             price: Number(product.price),
-            image_base64: imageBase64,
             quantity: 1,
             isGiftRefill: false,
             color: selectedColor,
           },
         ]
       })
+      showCartToast(product.name)
       return true
     },
-    [hasGiftRefill],
+    [hasGiftRefill, showCartToast],
   )
 
   const redeemGiftRefill = useCallback(
@@ -170,7 +210,6 @@ export function CartProvider({ children }) {
           productId: product.id,
           name: `${product.name} (Gift Card)`,
           price: 0,
-          image_base64: product.image_base64 || getCachedProductImageBase64(product.id) || null,
           quantity: 1,
           isGiftRefill: true,
         },
@@ -294,6 +333,8 @@ export function CartProvider({ children }) {
     giftCardMessage,
     refillBannerMessage,
     isCartOpen,
+    cartToast,
+    dismissCartToast,
     addToCart,
     redeemGiftRefill,
     removeFromCart,

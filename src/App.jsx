@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { CartProvider } from './context/CartContext'
 import { CheckoutSessionProvider } from './hooks/useCheckoutSession'
 import Cart from './components/Cart'
+import CartToast from './components/CartToast'
 import ScrollToTop from './components/ScrollToTop'
 import SplashScreen from './components/SplashScreen'
 import Store from './pages/Store'
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/order-success" element={<OrderSuccess />} />
           </Routes>
           <Cart />
+          <CartToast />
         </CheckoutSessionProvider>
       </BrowserRouter>
     </CartProvider>
